@@ -44,7 +44,7 @@ fi
 # Step 3: Deploy using Docker Compose
 log "Deploying service with Docker Compose..."
 cd /home/ubuntu/fms
-docker-compose --env-file "$ENV_FILE" up -d --no-deps "$SERVICE_NAME"
+docker compose --env-file "$ENV_FILE" up -d --no-deps "$SERVICE_NAME"
 
 # Step 4: Wait for container to be healthy
 log "Waiting for container to start..."

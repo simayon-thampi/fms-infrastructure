@@ -66,8 +66,8 @@ jobs:
             # Pull latest image for the service (from your registry or build it)
             # docker pull your-registry/fms-${{ matrix.service }}:latest
             
-            # Deploy using docker-compose
-            docker-compose --env-file .env up -d --no-deps ${{ matrix.service }}
+            # Deploy using docker compose (V2)
+            docker compose --env-file .env up -d --no-deps ${{ matrix.service }}
             
             # Verify service is running
             docker ps | grep ${{ matrix.service }} || echo "Warning: Service may not be running"
