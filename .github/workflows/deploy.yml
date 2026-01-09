@@ -24,7 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: ${{ fromJson(inputs.services == 'all' && '["application-service","user-service","device-core","mission-service","deployment-service","dashboard-service","alert-service","traffic-management-service","analytics-service","log-service","fmscore-frontend"]' || format('[{0}]', inputs.services)) }}
+        service: ${{ fromJson(
+          inputs.services == 'all' 
+            && '["application-service","user-service","device-core","mission-service","deployment-service","dashboard-service","alert-service","traffic-management-service","analytics-service","log-service","fmscore-frontend"]'
+            || format('["{0}"]', inputs.services)
+          ) }}
       fail-fast: false
       max-parallel: 3
 
