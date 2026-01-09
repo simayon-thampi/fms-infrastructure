@@ -1,0 +1,9 @@
+[submodule "services/application-service"]
+	path = services/application-service
+	url = https://github.com/govindTriz/FMS-application-service.git
+[submodule "services/device-core"]
+	path = services/device-core
+	url = https://github.com/govindTriz/FMS-device-core.git
+[submodule "services/alert-service"]
+	path = services/alert-service
+	url = https://github.com/govindTriz/FMS-alert-service.git
