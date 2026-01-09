@@ -47,11 +47,8 @@ jobs:
               docker-compose.prod.yml \
               ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/fms/docker-compose.yml
           
-          # Transfer .env file
-          scp -i ~/.ssh/deploy_key \
-              -o StrictHostKeyChecking=no \
-              .env \
-              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/fms/.env
+          # Note: .env file should already exist on EC2 (not in git repo)
+          # If needed, manually copy: scp .env ubuntu@ec2:/home/ubuntu/fms/.env
           
           # Transfer deployment script
           scp -i ~/.ssh/deploy_key \
