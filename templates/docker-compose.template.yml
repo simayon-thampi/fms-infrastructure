@@ -1,0 +1,29 @@
+# Docker Compose Template for CI/CD
+
+# This template shows the configuration used by deploy.sh
+# Customize for your service
+
+services:
+  your-service:
+    image: your-service-name:stable
+    container_name: your-service-name
+    volumes:
+      # SSL Certificates (if using HTTPS)
+      - /home/ubuntu/fms/certs/internal/your-service.crt:/etc/service-certs/cert.crt:ro
+      - /home/ubuntu/fms/certs/internal/your-service.key:/etc/service-certs/cert.key:ro
+      # Data volumes
+      - /home/ubuntu/FMS-localstorage/your-data:/app/uploads
+    environment:
+      - NODE_ENV=production
+      - PORT=8003
+      - DATABASE_URL=postgresql://admin:password@host.docker.internal:5432/your_db
+      # Add your environment variables here
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - fmsnet
+
+networks:
+  fmsnet:
+    driver: bridge

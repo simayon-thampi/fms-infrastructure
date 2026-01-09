@@ -1,0 +1,100 @@
+name: Deploy FMS Services
+
+on:
+  push:
+    branches:
+      - release
+      - main
+    paths:
+      - 'docker-compose.prod.yml'
+      - '.env.example'
+      - '.github/workflows/deploy.yml'
+      - 'scripts/deploy.sh'
+  
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'Services to deploy (comma-separated or "all")'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(inputs.services == 'all' && '["application-service","user-service","device-core","mission-service","deployment-service","dashboard-service","alert-service","traffic-management-service","analytics-service","log-service","fmscore-frontend"]' || format('[{0}]', inputs.services)) }}
+      fail-fast: false
+      max-parallel: 3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Transfer configuration files
+        run: |
+          # Transfer Docker Compose file
+          scp -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              docker-compose.prod.yml \
+              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/fms/docker-compose.yml
+          
+          # Transfer .env file
+          scp -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              .env \
+              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/fms/.env
+          
+          # Transfer deployment script
+          scp -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              scripts/deploy.sh \
+              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/tmp/deploy.sh
+
+      - name: Pull and deploy service on EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/${{ secrets.EC2_USERNAME }}/fms
+            
+            # Pull latest image for the service (from your registry or build it)
+            # docker pull your-registry/fms-${{ matrix.service }}:latest
+            
+            # Deploy using docker-compose
+            docker-compose --env-file .env up -d --no-deps ${{ matrix.service }}
+            
+            # Verify service is running
+            docker ps | grep ${{ matrix.service }} || echo "Warning: Service may not be running"
+          EOF
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key
+
+  summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always()
+    
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "# 🚀 FMS Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Services:** ${{ inputs.services || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Automated deployment via GitHub Actions*" >> $GITHUB_STEP_SUMMARY
